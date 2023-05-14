@@ -1,20 +1,26 @@
-﻿using MouseKeybordTest.Patterns.Observers.KeyboardObserver;
-using MouseKeybordTest.Services;
+﻿using MouseKeybordTest.Hooks;
+using MouseKeybordTest.Patterns.Observers.KeyboardObserver;
+using MouseKeybordTest.Patterns.Observers.MouseObservers;
 using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Windows.Forms;
+using System.Threading.Tasks;
 
 public class Program
 {
 
-    public static void Main()
+    public static async Task Main()
     {
-        KeyboardObserver observer = new KeyboardObserver();
-        KeyboardService keyboardService = new KeyboardService();
 
-        observer.Subscribe(keyboardService);
-        keyboardService.Start();
+        var globalMouseHook = new GlobalMouseHook();
+        var globalKeyboardHook = new GlobalKeyboardHook();
+        // Optional: You can subscribe to the services to get updates
+        var mouseObserver = new MouseObserver();
+        globalMouseHook.Subscribe(mouseObserver);
+
+        var keyboardObserver = new KeyboardObserver();
+        globalKeyboardHook.Subscribe(keyboardObserver);
+
+
+        globalKeyboardHook.Start();
+        globalMouseHook.Start();
     }
 }

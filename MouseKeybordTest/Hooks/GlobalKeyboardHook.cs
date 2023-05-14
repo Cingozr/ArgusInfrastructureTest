@@ -1,52 +1,57 @@
-﻿using MouseKeybordTest.Models;
-using MouseKeybordTest.Patterns.Observers;
+﻿using MouseKeybordTest.Abstracts;
+using MouseKeybordTest.Models;
 using MouseKeybordTest.Win32Libs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Timers;
 using System.Windows.Forms;
 
-namespace MouseKeybordTest.Services
+namespace MouseKeybordTest.Hooks
 {
-    public class KeyboardService : IObservable<KeyboardModel, ForegroundAppModel>
+    public class GlobalKeyboardHook : GlobalHook, IObservable<KeyboardModel, ForegroundAppModel>
     {
-        private static User32.HookProc _proc;
-        private static IntPtr _hookID = IntPtr.Zero;
-
-        private static KeyboardModel currentApp = new KeyboardModel();
+        private const int WM_KEYDOWN = 0x0100;
         private static StringBuilder keysBuffer = new StringBuilder();
         private static readonly object lockObj = new object();
-        private ForegroundAppWatcher _foregroundAppWatcher;
+        private GlobalForegroundAppHook _globalForegroundAppHook;
+        private KeyboardModel currentApp = new KeyboardModel(); 
 
         private List<IObserver<KeyboardModel, ForegroundAppModel>> observers = new List<IObserver<KeyboardModel, ForegroundAppModel>>();
 
-        public KeyboardService()
+        public GlobalKeyboardHook()
         {
-            _proc = HookCallback;
-            _foregroundAppWatcher = new ForegroundAppWatcher();
-            _foregroundAppWatcher.ForegroundChanged += HandleForegroundChanged;
+            _proc = HookProcedure;
+            _globalForegroundAppHook = new GlobalForegroundAppHook();
+            _globalForegroundAppHook.ForegroundChanged += HandleForegroundChanged;
 
-            currentApp.AppName = _foregroundAppWatcher.CurrentApp.AppName;
+            currentApp.AppName = _globalForegroundAppHook.CurrentApp.AppName;
         }
 
-        public void Start()
-        {
-            _hookID = SetHook(_proc);
-            Application.Run();
-            User32.UnhookWindowsHookEx(_hookID);
-        }
-
-        private IntPtr SetHook(User32.HookProc proc)
+        protected override IntPtr SetHook(User32.HookProc proc)
         {
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule curModule = curProcess.MainModule)
             {
-                return User32.SetWindowsHookEx(Win32HookConstants.WH_KEYBOARD_LL, proc,
+                return User32.SetWindowsHookEx(Win32HookConstants.WH_KEYBOARD_LL, _proc,
                     Kernel32.GetModuleHandle(curModule.ModuleName), 0);
             }
+        }
+
+        protected override IntPtr HookProcedure(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            {
+                int vkCode = Marshal.ReadInt32(lParam);
+
+                lock (lockObj)
+                {
+                    keysBuffer.Append((Keys)vkCode);
+                }
+            }
+
+            return User32.CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
 
         private void HandleForegroundChanged(ForegroundAppModel newApp, ForegroundAppModel oldApp)
@@ -63,21 +68,6 @@ namespace MouseKeybordTest.Services
                 }
 
             }
-        }
-
-        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
-        {
-            if (nCode >= 0 && wParam == (IntPtr)WindowsMessages.WM.KEYDOWN)
-            {
-                int vkCode = Marshal.ReadInt32(lParam);
-
-                lock (lockObj)
-                {
-                    keysBuffer.Append((Keys)vkCode);
-                }
-            }
-
-            return User32.CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
 
         private void OnAppDataChanged(KeyboardModel data, ForegroundAppModel foregroundApp)
