@@ -58,13 +58,12 @@
     <Compile Include="Models\ForegroundAppModel.cs" />
     <Compile Include="Models\MouseEventModel.cs" />
     <Compile Include="Models\MouseModel.cs" />
-    <Compile Include="Patterns\Observers\Core\IObserver.cs" />
-    <Compile Include="Patterns\Observers\Core\Unsubscriber.cs" />
-    <Compile Include="Patterns\Observers\KeyboardObserver\KeyboardObserver.cs" />
-    <Compile Include="Patterns\Observers\MouseObservers\MouseObserver.cs" />
+    <Compile Include="Core\Patterns\Observers\IObserver.cs" />
+    <Compile Include="Core\Patterns\Observers\Unsubscriber.cs" />
+    <Compile Include="Observers\KeyboardObserver\KeyboardObserver.cs" />
+    <Compile Include="Observers\MouseObservers\MouseObserver.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Start.cs" />
     <Compile Include="Win32Libs\Kernel32.cs" />
     <Compile Include="Win32Libs\ProcDefinitions.cs" />
     <Compile Include="Win32Libs\User32.cs" />
